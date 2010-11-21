@@ -28,6 +28,9 @@ helpers.extend global,
     [action, description] = [description, action] unless action
     tasks[name] = {name, description, action}
 
+  # Return list of cake tasks with definitions.
+  tasks: tasks
+
   # Define an option that the Cakefile accepts. The parsed options hash,
   # containing all of the command-line options passed, will be made available
   # as the first argument to the action.
