@@ -12,6 +12,10 @@ path         = require 'path'
 helpers      = require './helpers'
 optparse     = require './optparse'
 CoffeeScript = require './coffee-script'
+try
+  glob = require 'glob'
+catch error
+  glob = glob : (glob, flags, results) -> glob.constructor == Array ? glob : [glob]
 
 # Keep track of the list of defined tasks, the accepted options, and so on.
 tasks     = {}
@@ -35,13 +39,25 @@ helpers.extend global,
   # containing all of the command-line options passed, will be made available
   # as the first argument to the action.
   option: (letter, flag, description) ->
-    switches.push [letter, flag, description]
+    switches.push [letter, flag, description] if letter
+    switches
 
   # Invoke another task in the current Cakefile.
   invoke: (name) ->
     missingTask name unless tasks[name]
     tasks[name].action options
+  
+  # Creates a compilation task named like destination parameter. 
+  # Which is activated only if any of source files has changed
+  rule: (destination, source, compile) ->
+    glob.glob source, 0, (source_files) ->
+      task destination, "Compiles #{destination} only if any of source files are newer", (options) ->
+        dest_mtime = fs.statSync(path).mtime
+        any_newer = source_files.some (path) ->
+          fs.statSync(path).mtime > dest_mtime
 
+        compile(source_files, options) if any_newer
+  
 # Run `cake`. Executes all of the tasks you pass, in order. Note that Node's
 # asynchrony may cause tasks to execute in a different order than you'd expect.
 # If no tasks are passed, print the help screen. Keep a reference to the
