@@ -51,7 +51,7 @@ helpers.extend global,
   # Which is activated only if any of source files has changed
   rule: (destination, source, compile) ->
     glob.glob source, 0, (source_files) ->
-      task destination, "Compiles #{destination} only if any of source files are newer", (options) ->
+      task destination, "Compiles #{destination} only if any of #{source_files.join(", ")} is newer", (options) ->
         dest_mtime = fs.statSync(path).mtime
         any_newer = source_files.some (path) ->
           fs.statSync(path).mtime > dest_mtime
