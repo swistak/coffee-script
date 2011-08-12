@@ -71,6 +71,10 @@ task 'build', 'build the CoffeeScript language from source', build = (cb) ->
   files = ('src/' + file for file in files when file.match(/\.coffee$/))
   run ['-c', '-o', 'lib/coffee-script'].concat(files), cb
 
+task 'build:rb', 'build the CoffeeScript language from source', ->
+  files = fs.readdirSync 'src'
+  files = ('src/' + file for file in files when file.match(/\.coffee$/))
+  run ['-c', '-a', 'rb', '-o', 'lib'].concat(files)
 
 task 'build:full', 'rebuild the source twice, and run the tests', ->
   build ->

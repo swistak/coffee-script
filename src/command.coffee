@@ -44,6 +44,7 @@ SWITCHES = [
   ['-t', '--tokens',          'print out the tokens that the lexer/rewriter produce']
   ['-v', '--version',         'display the version number']
   ['-w', '--watch',           'watch scripts for changes and rerun commands']
+  ['-a', '--target [TARGET]', 'compilation target [js|rb] js is default']
 ]
 
 # Top-level objects shared by all the functions.
@@ -118,6 +119,7 @@ compilePath = (source, topLevel, base) ->
 compileScript = (file, input, base) ->
   o = opts
   options = compileOptions file
+  options.target = o.target
   try
     t = task = {file, input, options}
     CoffeeScript.emit 'compile', task
@@ -171,93 +173,12 @@ loadRequires = ->
 # time the file is updated. May be used in combination with other options,
 # such as `--lint` or `--print`.
 watch = (source, base) ->
+  fs.watchFile source, {persistent: true, interval: 500}, (curr, prev) ->
+    return if curr.size is prev.size and curr.mtime.getTime() is prev.mtime.getTime()
+    fs.readFile source, (err, code) ->
+      throw err if err
+      compileScript(source, code.toString(), base)
 
-  prevStats = null
-  compileTimeout = null
-
-  watchErr = (e) ->
-    if e.code is 'ENOENT'
-      return if sources.indexOf(source) is -1
-      try
-        rewatch()
-        compile()
-      catch e
-        removeSource source, base, yes
-        compileJoin()
-    else throw e
-
-  compile = ->
-    clearTimeout compileTimeout
-    compileTimeout = wait 25, ->
-      fs.stat source, (err, stats) ->
-        return watchErr err if err
-        return rewatch() if prevStats and stats.size is prevStats.size and
-          stats.mtime.getTime() is prevStats.mtime.getTime()
-        prevStats = stats
-        fs.readFile source, (err, code) ->
-          return watchErr err if err
-          compileScript(source, code.toString(), base)
-          rewatch()
-
-  try
-    watcher = fs.watch source, compile
-  catch e
-    watchErr e
-
-  rewatch = ->
-    watcher?.close()
-    watcher = fs.watch source, compile
-
-
-# Watch a directory of files for new additions.
-watchDir = (source, base) ->
-  readdirTimeout = null
-  try
-    watcher = fs.watch source, ->
-      clearTimeout readdirTimeout
-      readdirTimeout = wait 25, ->
-        fs.readdir source, (err, files) ->
-          if err
-            throw err unless err.code is 'ENOENT'
-            watcher.close()
-            return unwatchDir source, base
-          files = files.map (file) -> path.join source, file
-          for file in files when not notSources[file]
-            continue if sources.some (s) -> s.indexOf(file) >= 0
-            sources.push file
-            sourceCode.push null
-            compilePath file, no, base
-  catch e
-    throw e unless e.code is 'ENOENT'
-
-unwatchDir = (source, base) ->
-  prevSources = sources[..]
-  toRemove = (file for file in sources when file.indexOf(source) >= 0)
-  removeSource file, base, yes for file in toRemove
-  return unless sources.some (s, i) -> prevSources[i] isnt s
-  compileJoin()
-
-# Remove a file from our source list, and source code cache. Optionally remove
-# the compiled JS version as well.
-removeSource = (source, base, removeJs) ->
-  index = sources.indexOf source
-  sources.splice index, 1
-  sourceCode.splice index, 1
-  if removeJs and not opts.join
-    jsPath = outputPath source, base
-    path.exists jsPath, (exists) ->
-      if exists
-        fs.unlink jsPath, (err) ->
-          throw err if err and err.code isnt 'ENOENT'
-          timeLog "removed #{source}"
-
-# Get the corresponding output JavaScript path for a source file.
-outputPath = (source, base) ->
-  filename  = path.basename(source, path.extname(source)) + '.js'
-  srcDir    = path.dirname source
-  baseDir   = if base is '.' then srcDir else srcDir.substring base.length
-  dir       = if opts.output then path.join opts.output, baseDir else srcDir
-  path.join dir, filename
 
 # Write out a JavaScript source file with the compiled code. By default, files
 # are written out in `cwd` as `.js` files with the same name, but the output

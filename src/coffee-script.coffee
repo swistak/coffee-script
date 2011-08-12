@@ -33,6 +33,12 @@ exports.helpers = require './helpers'
 # compiler.
 exports.compile = compile = (code, options = {}) ->
   {merge} = exports.helpers
+  try 
+    target = options.target or 'js'
+    parser.yy = require "./nodes.#{target}"
+  catch err
+    err.message = "Error loading the nodes for #{target}. Check if nodes.#{target}.coffee exists and is correct."
+
   try
     js = (parser.parse lexer.tokenize code).compile options
     return js unless options.header
@@ -127,4 +133,3 @@ parser.lexer =
   upcomingInput: ->
     ""
 
-parser.yy = require './nodes'
