@@ -163,6 +163,7 @@ grammar =
   # A block comment.
   Comment: [
     o 'HERECOMMENT',                            -> new Comment $1
+    o 'LINECOMMENT',                            -> new Comment $1
   ]
 
   # The **Code** node is the function literal. It's defined by an indented block
