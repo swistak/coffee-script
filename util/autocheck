@@ -1,7 +1,8 @@
-fs = require 'fs'
-tty = require 'tty'
+fs            = require 'fs'
+tty           = require 'tty'
 {spawn, exec} = require 'child_process'
-{extend}      = require './lib/helpers'
+{extend}      = require '../lib/helpers'
+cmp           = require './compare'
 
 # ANSI Terminal Colors.
 bold  = '\033[0;1m'
@@ -19,22 +20,22 @@ checkRuby = (file, cb) ->
 
     fail("#{file} - Syntax incorrect!") if err
 
-    cb?()
+    cb?(!err)
  
 compile = (file, cb)->
-  exec "./bin/coffee -c -a rb -o documentation/rb #{file}", (err, stdout, stderr) ->
+  exec "./bin/coffee -b -c -a rb -o documentation/rb #{file}", (err, stdout, stderr) ->
     log(stdout, stderr)
 
-    fail("#{file} - Cannot compile") if err
-
-    cb?()
+    if err
+      fail("#{file} - Cannot compile")
+    else
+      cb?(true)
  
 compare = (file, rbFile, cb) ->
-  console.log "diff -y #{file} #{rbFile}"
-  exec "diff -y #{file} #{rbFile}", (err, stdout, stderr) -> 
-    console.log(stdout)
+  jsFile = file.replace(/coffee/g, 'js')
+  cmp([file, rbFile, jsFile])
 
-  cb?()
+  cb?(true)
 
 dir = process.argv[2]
 showFile = process.argv[3]
@@ -45,13 +46,14 @@ files = (dir + file for file in files when file.match(/\.coffee$/))
 check = (file) ->
   rbFile = file.replace(/coffee/g, 'rb')
   compile file, -> 
-    checkRuby rbFile, -> 
-      ok("#{file} Compiled, and syntax correct")
-      compare(file, rbFile) if showFile && file.indexOf(showFile) != -1
+    checkRuby rbFile, (passed) -> 
+      ok("#{file} Compiled, and syntax correct") if passed
+      compare(file, rbFile) if showFile
       
 
 checkAll = () ->
-  files.forEach (file) -> check(file)
+  files.forEach (file) -> 
+    check(file) if (showFile && file.indexOf(showFile) != -1) || !showFile
 
 # Watch all files for changes
 files.forEach (file) ->
