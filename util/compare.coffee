@@ -22,13 +22,14 @@ compare = (args) ->
   console.log args.map(padR).map((l)->t.bold + l + t.reset).join(" | ")
 
   max = (l, r) -> if l >= r then l else r
+  min = (l, r) -> if l <  r then l else r
 
   maxLines = files.map((f)-> f.length).reduce(max)
+  maxLines = min(maxLines, height - 2)
 
   for i in [0...maxLines]
     line = files.map((f)->f[i]).map(padR).join(" | ")
     console.log(line)
-
 
 args = process.argv.slice(2)
 

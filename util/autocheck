@@ -3,6 +3,7 @@ tty           = require 'tty'
 {spawn, exec} = require 'child_process'
 {extend}      = require '../lib/helpers'
 cmp           = require './compare'
+cli           = require './node-cli'
 
 # ANSI Terminal Colors.
 bold  = '\033[0;1m'
@@ -45,6 +46,7 @@ files = (dir + file for file in files when file.match(/\.coffee$/))
 
 check = (file) ->
   rbFile = file.replace(/coffee/g, 'rb')
+  cli.clear().move(0,0)
   compile file, -> 
     checkRuby rbFile, (passed) -> 
       ok("#{file} Compiled, and syntax correct") if passed
