@@ -8,3 +8,6 @@ examples/beautiful_code/parse.coffee
 *.gem
 /node_modules
 lib/*.rb
+log/*
+node_modules
+documentation/rb
