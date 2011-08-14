@@ -46,7 +46,6 @@ files = (dir + file for file in files when file.match(/\.coffee$/))
 
 check = (file) ->
   rbFile = file.replace(/coffee/g, 'rb')
-  cli.clear().move(0,0)
   compile file, -> 
     checkRuby rbFile, (passed) -> 
       ok("#{file} Compiled, and syntax correct") if passed
@@ -54,6 +53,8 @@ check = (file) ->
       
 
 checkAll = () ->
+  cli.clear().move(0,0)
+
   files.forEach (file) -> 
     check(file) if (showFile && file.indexOf(showFile) != -1) || !showFile
 
@@ -61,11 +62,20 @@ checkAll = () ->
 files.forEach (file) ->
   fs.watchFile file, {persistent: true, interval: 500}, (curr, prev) -> 
     return if curr.size is prev.size and curr.mtime.getTime() is prev.mtime.getTime()
+
+    cli.clear().move(0,0)
     check(file)
 
 # If nodes.rb.js changes - the nwe need to recheck all files!
-fs.watchFile 'lib/nodes.rb.js', {persistent: true, interval: 500}, (curr, prev) ->
-  return if curr.size is prev.size and curr.mtime.getTime() is prev.mtime.getTime()
-  checkAll()
+fs.watchFile 'src/nodes.rb.coffee', {persistent: true, interval: 500}, (curr, prev) ->
+  return if curr.mtime.getTime() is prev.mtime.getTime()
+
+  exec './bin/coffee -o lib -c src/nodes.rb.coffee', (err, stdout, stderr) ->
+    log(stdout, stderr)
+
+    if err
+      fail("Could not compile src/nodes.rb.coffee !")
+    else
+      checkAll()
 
 checkAll()
