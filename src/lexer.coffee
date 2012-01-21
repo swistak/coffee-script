@@ -190,6 +190,7 @@ exports.Lexer = class Lexer
     if here
       @token 'HERECOMMENT', @sanitizeHeredoc here,
         herecomment: true, indent: Array(@indent + 1).join(' ')
+      @token 'TERMINATOR', ['//', comment, '\n'].join("")
     @line += count comment, '\n'
     comment.length
 
